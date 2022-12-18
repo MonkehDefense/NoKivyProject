@@ -15,6 +15,7 @@ import android.widget.Toast;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+//	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
 	private SensorManager sensorManager;
 	private List<Sensor> deviceSensors;
 	private WifiManager wifiManager;
