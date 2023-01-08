@@ -3,9 +3,12 @@ package com.example.nokivyprojekt;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
@@ -39,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
 	private static final int PERMISSIONS_COARSE_LOCATION = 98;
 	TextView tv_lat, tv_lon, tv_altitude, tv_accuracy, tv_speed, tv_sensor, tv_updates, tv_address, tv_countOfCrumbs;
 	Switch sw_locationupdates, sw_gps;
-	Button btn_newWayPoint, btn_showWayPointList;
+	Button btn_newWayPoint, btn_showWayPointList, btn_showMap;
 
 	boolean updateOn = false;
 
@@ -78,6 +81,7 @@ public class MainActivity extends AppCompatActivity {
 		btn_newWayPoint = findViewById(R.id.btn_newWayPoint);
 		btn_showWayPointList = findViewById(R.id.btn_showWayPointList);
 		tv_countOfCrumbs = findViewById(R.id.tv_countOfCrumbs);
+		btn_showMap = findViewById(R.id.btn_showMap);
 
 //		set properties of LocationRequest
 		builder = new LocationRequest.Builder(default_update_interval * 1000)
@@ -106,6 +110,22 @@ public class MainActivity extends AppCompatActivity {
 				MyApplication myApplication = (MyApplication) getApplicationContext();
 				savedLocations = myApplication.getMyLocations();
 				savedLocations.add(currentLocation);
+			}
+		});
+
+		btn_showWayPointList.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				Intent i = new Intent(MainActivity.this, ShowSavedLocationsList.class);
+				startActivity(i);
+			}
+		});
+
+		btn_showMap.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View view) {
+				Intent i = new Intent(MainActivity.this, MapsActivity.class);
+				startActivity(i);
 			}
 		});
 
@@ -143,21 +163,19 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 
+	@SuppressLint("MissingPermission")
 	private void startLocationUpdates() {
 		tv_updates.setText("Location tracking ON");
-		if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+		if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
 			if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
 				requestPermissions(new String[] {Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSIONS_COARSE_LOCATION);
 				requestPermissions(new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
 			}
 		}
+
 		fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallBack, null);
+
 		updateGPS();
-//		if(sw_gps.isChecked()){
-//			tv_sensor.setText("Using GPS sensors");
-//		}else {
-//			tv_sensor.setText("Using Towers + WIFI");
-//		}
 	}
 
 	private void stopLocationUpdates() {
@@ -196,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
 	}
 
 
+	@SuppressLint("MissingPermission")
 	private void updateGPS(){
 		fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
 
