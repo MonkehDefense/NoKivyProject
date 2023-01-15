@@ -3,23 +3,22 @@ package com.example.nokivyprojekt;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -31,16 +30,19 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationResult;
 import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.Priority;
+import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.tasks.OnSuccessListener;
 
+import java.text.DecimalFormat;
 import java.util.List;
-
-public class MainActivity extends AppCompatActivity {
+//implements SensorEventListener
+public class MainActivity extends AppCompatActivity implements SensorEventListener {
 	public static final int default_update_interval = 30;
 	public static final int fast_update_interval = 5;
-	private static final int PERMISSIONS_FINE_LOCATION = 99;
-	private static final int PERMISSIONS_COARSE_LOCATION = 98;
-	TextView tv_lat, tv_lon, tv_altitude, tv_accuracy, tv_speed, tv_sensor, tv_updates, tv_address, tv_countOfCrumbs;
+	private static final int PERMISSIONS_FINE_LOCATION = 99,
+			PERMISSIONS_COARSE_LOCATION = 98,
+			ACTIVITY_RECOGNITION = 97;
+	TextView tv_lat, tv_lon, tv_altitude, tv_accuracy, tv_speed, tv_sensor, tv_updates, tv_address, tv_countOfCrumbs, tv_steps, tv_route_km;
 	Switch sw_locationupdates, sw_gps;
 	Button btn_newWayPoint, btn_showWayPointList, btn_showMap;
 
@@ -54,19 +56,19 @@ public class MainActivity extends AppCompatActivity {
 	private LocationCallback locationCallBack;
 	private FusedLocationProviderClient fusedLocationProviderClient;
 
-//	private SensorManager sensorManager;
-//	private List<Sensor> deviceSensors;
-//	private WifiManager wifiManager;
+	private SensorManager sensorManager;
+	private Sensor step_counter;
+	private boolean steps_available;
+
 	private int upd = 0;
+	private double route_length = 0;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_main);
 
-//		sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-//		deviceSensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
-//		wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+		getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
 		tv_lat = findViewById(R.id.tv_lat);
 		tv_lon = findViewById(R.id.tv_lon);
@@ -82,6 +84,8 @@ public class MainActivity extends AppCompatActivity {
 		btn_showWayPointList = findViewById(R.id.btn_showWayPointList);
 		tv_countOfCrumbs = findViewById(R.id.tv_countOfCrumbs);
 		btn_showMap = findViewById(R.id.btn_showMap);
+		tv_steps = findViewById(R.id.tv_steps);
+		tv_route_km = findViewById(R.id.tv_route_km);
 
 //		set properties of LocationRequest
 		builder = new LocationRequest.Builder(default_update_interval * 1000)
@@ -159,8 +163,36 @@ public class MainActivity extends AppCompatActivity {
 		});
 
 
+
+
+
+		sensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+		if(sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null){
+			if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACTIVITY_RECOGNITION) != PackageManager.PERMISSION_GRANTED) {
+				requestPermissions(new String[] {Manifest.permission.ACTIVITY_RECOGNITION}, ACTIVITY_RECOGNITION);
+			}
+			step_counter = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+			steps_available = true;
+		}else {
+			steps_available = false;
+			tv_steps.setText("sensor nie dostepny");
+		}
+
 		updateGPS();
 	}
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 	@SuppressLint("MissingPermission")
@@ -209,6 +241,10 @@ public class MainActivity extends AppCompatActivity {
 				}else {
 					Toast.makeText(this,"This app requires permission to be granted in order to work properly", Toast.LENGTH_SHORT).show();
 					finish();
+				}
+			case ACTIVITY_RECOGNITION:
+				if(grantResults[0] != PackageManager.PERMISSION_GRANTED){
+					Toast.makeText(this,"Ej no! Ja tu mam kroki liczyć!", Toast.LENGTH_SHORT).show();
 				}
 		}
 	}
@@ -263,31 +299,80 @@ public class MainActivity extends AppCompatActivity {
 
 		MyApplication myApplication = (MyApplication) getApplicationContext();
 		savedLocations = myApplication.getMyLocations();
+		// automatycznie dodajemy lokacje
+		savedLocations.add(location);
 
-		tv_countOfCrumbs.setText(Integer.toString(savedLocations.size()));
+		int len = savedLocations.size();
+
+		tv_countOfCrumbs.setText(Integer.toString(len));
+
+		if(len >= 2){
+			Location l_ = savedLocations.get(len - 2);
+			LatLng start = new LatLng(l_.getLatitude(), l_.getLongitude());
+			LatLng stop = new LatLng(location.getLatitude(), location.getLongitude());
+			route_length += CalculationByDistance(start,stop);
+		}
+
+		double km = route_length / 1;
+		DecimalFormat newFormat = new DecimalFormat("####");
+		int kmInDec = Integer.valueOf(newFormat.format(km));
+		double meter = route_length % 1000;
+		int meterInDec = Integer.valueOf(newFormat.format(meter));
+
+//		tv_route_km.setText("   Km  " + kmInDec	+ " m " + meterInDec);
+		tv_route_km.setText("" + kmInDec	+ "km " + meterInDec + "m");
+
 	}
 
-//	public void warudoClick(View view){
-//		TextView hiZaWarudo = findViewById(R.id.hiZaWarudo);
-//		TextView wifiSigStrength = findViewById(R.id.wifiSigStrength);
-//		String name = deviceSensors.get(i).getName();
-//		hiZaWarudo.setText(name);
-//
-////		wifiManager.startScan();
-////		WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-////		int level = WifiManager.calculateSignalLevel(wifiInfo.getRssi(),5);
-//
-//
-////		wifiSigStrength.setText(level);
-////		hiZaWarudo.setText("name");
-//
-//		if(i == deviceSensors.size() - 1){
-//			i = 0;
-//		}else {
-//			i++;
-//		}
-//
-//		Toast.makeText(this, "EJ, ŁAPY PRZY SOBIE!", Toast.LENGTH_SHORT).show();
-//	}
+
+	public double CalculationByDistance(LatLng StartP, LatLng EndP) {
+//		https://stackoverflow.com/questions/14394366/find-distance-between-two-points-on-map-using-google-map-api-v2
+
+		int Radius = 6371;// radius of earth in Km
+		double lat1 = StartP.latitude;
+		double lat2 = EndP.latitude;
+		double lon1 = StartP.longitude;
+		double lon2 = EndP.longitude;
+		double dLat = Math.toRadians(lat2 - lat1);
+		double dLon = Math.toRadians(lon2 - lon1);
+		double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+				+ Math.cos(Math.toRadians(lat1))
+				* Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2)
+				* Math.sin(dLon / 2);
+		double c = 2 * Math.asin(Math.sqrt(a));
+		return Radius * c;
+	}
+
+
+
+
+	@Override
+	public void onSensorChanged(SensorEvent sensorEvent) {
+		if(sensorEvent.sensor == step_counter){
+			tv_steps.setText(String.valueOf((int) sensorEvent.values[0]));
+		}
+	}
+
+	@Override
+	public void onAccuracyChanged(Sensor sensor, int i) {
+
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		if(sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null){
+			sensorManager.registerListener(this, step_counter, sensorManager.SENSOR_DELAY_NORMAL);
+		}
+	}
+
+	@Override
+	protected void onPause() {
+		super.onPause();
+		if(sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER) != null){
+			sensorManager.unregisterListener(this, step_counter);
+		}
+	}
+
 
 }

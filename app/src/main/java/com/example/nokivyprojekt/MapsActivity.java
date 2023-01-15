@@ -2,6 +2,7 @@ package com.example.nokivyprojekt;
 
 import androidx.fragment.app.FragmentActivity;
 
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 
@@ -12,7 +13,10 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.example.nokivyprojekt.databinding.ActivityMapsBinding;
+import com.google.android.gms.maps.model.PolygonOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -36,6 +40,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         MyApplication myApplication = (MyApplication)getApplicationContext();
         savedLocations = myApplication.getMyLocations();
+
     }
 
     /**
@@ -50,11 +55,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
+        PolylineOptions lineOptions = new PolylineOptions();
+        ArrayList points = new ArrayList();
 
         // Add a marker in Sydney and move the camera
 //        LatLng sydney = new LatLng(52, 21);
 //        mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
 //        mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
+//        points.add(sydney);
 
         for (Location location: savedLocations){
             LatLng latLng = new LatLng(location.getLatitude(), location.getLongitude());
@@ -63,7 +71,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             markerOptions.title("Lat:" + location.getLatitude() + " Lon:" + location.getLongitude());
             mMap.addMarker(markerOptions);
             mMap.moveCamera(CameraUpdateFactory.newLatLng(latLng));
+
+
+            points.add(latLng);
         }
+
+        lineOptions.addAll(points);
+        lineOptions.width(12);
+        lineOptions.color(Color.RED);
+        lineOptions.geodesic(true);
+
+        mMap.addPolyline(lineOptions);
 
     }
 }
