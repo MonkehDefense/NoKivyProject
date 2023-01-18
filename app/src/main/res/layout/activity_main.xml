@@ -10,39 +10,38 @@
         android:id="@+id/tv_labelroute"
         android:layout_width="100dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="76dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="8dp"
         android:text="długość trasy:"
-        app:layout_constraintStart_toEndOf="@+id/tv_lon"
-        app:layout_constraintTop_toBottomOf="@+id/tv_labelsteps" />
+        app:layout_constraintStart_toStartOf="@+id/tv_labelsteps"
+        app:layout_constraintTop_toBottomOf="@+id/tv_steps" />
 
     <TextView
         android:id="@+id/tv_route_km"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="76dp"
+        android:layout_marginTop="8dp"
         android:text="0"
-        app:layout_constraintStart_toEndOf="@+id/tv_altitude"
+        app:layout_constraintStart_toStartOf="@+id/tv_labelroute"
         app:layout_constraintTop_toBottomOf="@+id/tv_labelroute" />
 
     <TextView
         android:id="@+id/tv_labelsteps"
         android:layout_width="100dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="76dp"
         android:layout_marginTop="32dp"
+        android:layout_marginEnd="16dp"
         android:text="kroki:"
-        app:layout_constraintStart_toEndOf="@+id/tv_lat"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <TextView
         android:id="@+id/tv_steps"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="8dp"
         android:text="0"
-        app:layout_constraintStart_toEndOf="@+id/tv_labelsteps"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintStart_toStartOf="@+id/tv_labelsteps"
+        app:layout_constraintTop_toBottomOf="@+id/tv_labelsteps" />
 
     <TextView
         android:id="@+id/tv_labellat"

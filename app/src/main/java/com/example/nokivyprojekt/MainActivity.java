@@ -258,6 +258,18 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 			fusedLocationProviderClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
 				@Override
 				public void onSuccess(Location location) {
+					// automatycznie dodajemy lokację
+					MyApplication myApplication = (MyApplication) getApplicationContext();
+					savedLocations = myApplication.getMyLocations();
+					savedLocations.add(location);
+
+					// doliczamy estymowany przebyty dystans od ostatniego znacznika
+					if(savedLocations.size() >= 2){
+						Location l_ = savedLocations.get(savedLocations.size() - 2);
+						float dist = l_.distanceTo(location);
+						route_length += dist;
+					}
+
 					updateUIValues(location);
 					currentLocation = location;
 				}
@@ -299,49 +311,20 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
 		MyApplication myApplication = (MyApplication) getApplicationContext();
 		savedLocations = myApplication.getMyLocations();
-		// automatycznie dodajemy lokacje
-		savedLocations.add(location);
 
 		int len = savedLocations.size();
 
 		tv_countOfCrumbs.setText(Integer.toString(len));
 
-		if(len >= 2){
-			Location l_ = savedLocations.get(len - 2);
-			LatLng start = new LatLng(l_.getLatitude(), l_.getLongitude());
-			LatLng stop = new LatLng(location.getLatitude(), location.getLongitude());
-			route_length += CalculationByDistance(start,stop);
-		}
+		int route_km = (int)Math.floor(route_length/1000);
+		int route_m = (int)Math.floor(route_length%1000);
 
-		double km = route_length / 1;
-		DecimalFormat newFormat = new DecimalFormat("####");
-		int kmInDec = Integer.valueOf(newFormat.format(km));
-		double meter = route_length % 1000;
-		int meterInDec = Integer.valueOf(newFormat.format(meter));
-
-//		tv_route_km.setText("   Km  " + kmInDec	+ " m " + meterInDec);
-		tv_route_km.setText("" + kmInDec	+ "km " + meterInDec + "m");
+		tv_route_km.setText("" + route_km	+ "km " + route_m + "m");
 
 	}
 
 
-	public double CalculationByDistance(LatLng StartP, LatLng EndP) {
-//		https://stackoverflow.com/questions/14394366/find-distance-between-two-points-on-map-using-google-map-api-v2
 
-		int Radius = 6371;// radius of earth in Km
-		double lat1 = StartP.latitude;
-		double lat2 = EndP.latitude;
-		double lon1 = StartP.longitude;
-		double lon2 = EndP.longitude;
-		double dLat = Math.toRadians(lat2 - lat1);
-		double dLon = Math.toRadians(lon2 - lon1);
-		double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-				+ Math.cos(Math.toRadians(lat1))
-				* Math.cos(Math.toRadians(lat2)) * Math.sin(dLon / 2)
-				* Math.sin(dLon / 2);
-		double c = 2 * Math.asin(Math.sqrt(a));
-		return Radius * c;
-	}
 
 
 
