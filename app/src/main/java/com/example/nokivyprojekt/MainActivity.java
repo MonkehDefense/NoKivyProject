@@ -35,7 +35,8 @@ import com.google.android.gms.tasks.OnSuccessListener;
 
 import java.text.DecimalFormat;
 import java.util.List;
-//implements SensorEventListener
+
+//public class MainActivity extends AppCompatActivity{
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 	public static final int default_update_interval = 30;
 	public static final int fast_update_interval = 5;
@@ -99,8 +100,22 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 			public void onLocationResult(@NonNull LocationResult locationResult) {
 				super.onLocationResult(locationResult);
 
+				Location location = locationResult.getLastLocation();
+
 //				save location
-				updateUIValues(locationResult.getLastLocation());
+				MyApplication myApplication = (MyApplication) getApplicationContext();
+				savedLocations = myApplication.getMyLocations();
+				savedLocations.add(location);
+
+//				// doliczamy estymowany przebyty dystans od ostatniego znacznika
+				if(savedLocations.size() >= 2){
+					Location l_ = savedLocations.get(savedLocations.size() - 2);
+					float dist = l_.distanceTo(location);
+					route_length += dist;
+				}
+
+				updateUIValues(location);
+
 			}
 		};
 
@@ -254,32 +269,54 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 	private void updateGPS(){
 		fusedLocationProviderClient = LocationServices.getFusedLocationProviderClient(MainActivity.this);
 
-		if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
-			fusedLocationProviderClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
-				@Override
-				public void onSuccess(Location location) {
-					// automatycznie dodajemy lokację
-					MyApplication myApplication = (MyApplication) getApplicationContext();
-					savedLocations = myApplication.getMyLocations();
-					savedLocations.add(location);
 
-					// doliczamy estymowany przebyty dystans od ostatniego znacznika
-					if(savedLocations.size() >= 2){
-						Location l_ = savedLocations.get(savedLocations.size() - 2);
-						float dist = l_.distanceTo(location);
-						route_length += dist;
+
+		if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+			if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+				fusedLocationProviderClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
+					@Override
+					public void onSuccess(Location location) {
+						currentLocation = location;
+						updateUIValues(location);
 					}
-
-					updateUIValues(location);
-					currentLocation = location;
-				}
-			});
+				});
+			}else {
+				requestPermissions(new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
+			}
 		}else {
 			if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
 				requestPermissions(new String[] {Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSIONS_COARSE_LOCATION);
-				requestPermissions(new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
 			}
 		}
+
+
+//		if(ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED){
+//			fusedLocationProviderClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
+//
+//				@Override
+//				public void onSuccess(Location location) {
+//					// automatycznie dodajemy lokację
+//					MyApplication myApplication = (MyApplication) getApplicationContext();
+//					savedLocations = myApplication.getMyLocations();
+//					savedLocations.add(location);
+//
+//					// doliczamy estymowany przebyty dystans od ostatniego znacznika
+//					if(savedLocations.size() >= 2){
+//						Location l_ = savedLocations.get(savedLocations.size() - 2);
+//						float dist = l_.distanceTo(location);
+//						route_length += dist;
+//					}
+//
+//					updateUIValues(location);
+//					currentLocation = location;
+//				}
+//			});
+//		}else {
+//			if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M){
+//				requestPermissions(new String[] {Manifest.permission.ACCESS_COARSE_LOCATION}, PERMISSIONS_COARSE_LOCATION);
+//				requestPermissions(new String[] {Manifest.permission.ACCESS_FINE_LOCATION}, PERMISSIONS_FINE_LOCATION);
+//			}
+//		}
 	}
 
 	private void updateUIValues(Location location) {
